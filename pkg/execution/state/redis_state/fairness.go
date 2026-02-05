@@ -11,6 +11,14 @@ import (
 	"github.com/redis/rueidis"
 )
 
+const (
+	// RedisMinScore is the minimum score for Redis ZREMRANGEBYSCORE operations
+	RedisMinScore = "0"
+	
+	// MaxPriorityScale is the maximum value in the priority scale (0-10)
+	MaxPriorityScale = 10
+)
+
 // RedisFairnessTracker implements fairness tracking using Redis for persistence
 type RedisFairnessTracker struct {
 	client         rueidis.Client
@@ -51,7 +59,7 @@ func (rft *RedisFairnessTracker) RecordAccountConsumption(ctx context.Context, a
 		// Remove entries older than window
 		rft.client.B().Zremrangebyscore().
 			Key(key).
-			Min(fmt.Sprintf("0")).
+			Min(RedisMinScore).
 			Max(fmt.Sprintf("%f", float64(now.Add(-rft.windowDuration).UnixMilli()))).
 			Build(),
 		// Set expiry on the key (2x window duration for safety)
@@ -115,7 +123,7 @@ func (rft *RedisFairnessTracker) RecordUserConsumption(ctx context.Context, acco
 		rft.client.B().Zadd().Key(key).ScoreMember().ScoreMember(score, member).Build(),
 		rft.client.B().Zremrangebyscore().
 			Key(key).
-			Min(fmt.Sprintf("0")).
+			Min(RedisMinScore).
 			Max(fmt.Sprintf("%f", float64(now.Add(-rft.windowDuration).UnixMilli()))).
 			Build(),
 		rft.client.B().Expire().Key(key).Seconds(int64(rft.windowDuration.Seconds() * 2)).Build(),
@@ -186,10 +194,10 @@ func FairnessAccountPriorityFinder(
 		// Calculate fairness weight
 		weight := osqueue.CalculateAccountWeight(ctx, accountID, planTier, consumption, config)
 		
-		// Convert weight to priority (0-10 scale)
+		// Convert weight to priority (0-MaxPriorityScale scale)
 		// Higher weights map to lower priority values (closer to 0 = higher priority)
-		// We invert by doing 10 - weight, clamped to 0-10 range
-		priority := uint(10 - min(weight, 10))
+		// We invert by doing MaxPriorityScale - weight, clamped to 0-MaxPriorityScale range
+		priority := uint(MaxPriorityScale - min(weight, float64(MaxPriorityScale)))
 		
 		return priority
 	}

@@ -10,6 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// MaxPriorityValue is the maximum value in the priority scale (0-10)
+	// where 0 represents highest priority
+	MaxPriorityValue = 10
+	
+	// MinimumWeight is the minimum weight threshold to prevent complete starvation
+	// Even accounts with very high consumption will maintain this minimum weight
+	MinimumWeight = 0.1
+)
+
 // FairnessTracker tracks job consumption metrics for accounts and users
 // to enable fair scheduling based on recent usage and plan tier.
 type FairnessTracker struct {
@@ -229,8 +239,8 @@ func CalculateAccountWeight(
 	weight := planWeight * consumptionPenalty
 	
 	// Ensure minimum weight to prevent starvation
-	if weight < 0.1 {
-		weight = 0.1
+	if weight < MinimumWeight {
+		weight = MinimumWeight
 	}
 	
 	return weight
@@ -260,9 +270,9 @@ func FairnessAccountPriorityFinder(
 		// Calculate fairness weight
 		weight := CalculateAccountWeight(ctx, accountID, planTier, consumption, config)
 		
-		// Convert weight to priority (0-10 scale, where 0 is highest priority)
+		// Convert weight to priority (0-MaxPriorityValue scale, where 0 is highest priority)
 		// Higher weights should map to lower priority values (closer to 0)
-		priority := uint(10 - math.Min(weight, 10))
+		priority := uint(MaxPriorityValue - math.Min(weight, float64(MaxPriorityValue)))
 		
 		return priority
 	}

@@ -100,7 +100,7 @@ func TestCalculateAccountWeight(t *testing.T) {
 			name:        "Free with high consumption",
 			planTier:    PlanTierFree,
 			consumption: 1000,
-			minWeight:   0.1,
+			minWeight:   MinimumWeight,
 			maxWeight:   0.5,
 		},
 	}
@@ -110,7 +110,7 @@ func TestCalculateAccountWeight(t *testing.T) {
 			weight := CalculateAccountWeight(ctx, accountID, tt.planTier, tt.consumption, config)
 			assert.GreaterOrEqual(t, weight, tt.minWeight, "Weight should be >= minWeight")
 			assert.LessOrEqual(t, weight, tt.maxWeight, "Weight should be <= maxWeight")
-			assert.GreaterOrEqual(t, weight, 0.1, "Weight should never go below minimum threshold")
+			assert.GreaterOrEqual(t, weight, MinimumWeight, "Weight should never go below minimum threshold")
 		})
 	}
 }
