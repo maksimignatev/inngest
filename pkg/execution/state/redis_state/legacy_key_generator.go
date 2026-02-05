@@ -330,3 +330,11 @@ func (d legacyDefaultQueueKeyGenerator) Status(status string, fnID uuid.UUID) st
 func (d legacyDefaultQueueKeyGenerator) ConcurrencyFnEWMA(fnID uuid.UUID) string {
 	return fmt.Sprintf("%s:queue:concurrency-ewma:%s", d.Prefix, fnID)
 }
+
+func (d legacyDefaultQueueKeyGenerator) FairnessAccountConsumption(accountID uuid.UUID) string {
+	return fmt.Sprintf("%s:queue:fairness:account:%s", d.Prefix, accountID.String())
+}
+
+func (d legacyDefaultQueueKeyGenerator) FairnessUserConsumption(accountID, userID uuid.UUID) string {
+	return fmt.Sprintf("%s:queue:fairness:user:%s:%s", d.Prefix, accountID.String(), userID.String())
+}

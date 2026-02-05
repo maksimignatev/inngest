@@ -246,6 +246,12 @@ type QueueKeyGenerator interface {
 	// calculating the EWMA value for the function
 	ConcurrencyFnEWMA(fnID uuid.UUID) string
 
+	// FairnessAccountConsumption returns the key for tracking account job consumption for fairness
+	FairnessAccountConsumption(accountID uuid.UUID) string
+
+	// FairnessUserConsumption returns the key for tracking user job consumption within an account
+	FairnessUserConsumption(accountID, userID uuid.UUID) string
+
 	// QueuePrefix returns the hash prefix used in the queue.
 	// This is likely going to be a redis specific requirement.
 	QueuePrefix() string
@@ -494,6 +500,14 @@ func (u queueKeyGenerator) AccountActiveCheckCooldown(accountID string) string {
 		return fmt.Sprintf("{%s}:active-check:cooldown:account:-", u.queueDefaultKey)
 	}
 	return fmt.Sprintf("{%s}:active-check:cooldown:account:%s", u.queueDefaultKey, accountID)
+}
+
+func (u queueKeyGenerator) FairnessAccountConsumption(accountID uuid.UUID) string {
+	return fmt.Sprintf("{%s}:fairness:account:%s", u.queueDefaultKey, accountID.String())
+}
+
+func (u queueKeyGenerator) FairnessUserConsumption(accountID, userID uuid.UUID) string {
+	return fmt.Sprintf("{%s}:fairness:user:%s:%s", u.queueDefaultKey, accountID.String(), userID.String())
 }
 
 func (u queueKeyGenerator) QueuePrefix() string {
