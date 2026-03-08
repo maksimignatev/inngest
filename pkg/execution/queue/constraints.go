@@ -51,7 +51,7 @@ type PartitionConcurrency struct {
 	// FunctionRunConcurrency represents the function run concurrency limit (how many active runs allowed per function).
 	FunctionRunConcurrency int `json:"frc,omitempty"`
 
-	// Up to two custom concurrency keys on user-defined scopes, optionally specifying a key. The key is required
+	// Up to three custom concurrency keys on user-defined scopes, optionally specifying a key. The key is required
 	// on env or account level scopes.
 	CustomConcurrencyKeys []CustomConcurrencyLimit `json:"cck,omitempty"`
 }

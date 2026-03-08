@@ -655,7 +655,7 @@ A Sync’s payload MUST be the following JSON object:
      * use the maximum available concurrency.
      *
      * Specifying just a number means specifying only the concurrency limit. A
-     * maximum of two concurrency options can be specified.
+     * maximum of three concurrency options can be specified.
      */
     concurrency?:
       | number

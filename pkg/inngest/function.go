@@ -66,7 +66,7 @@ type Function struct {
 	// ConcurrencyLimits allows limiting the concurrency of running functions, optionally constrained
 	// by individual concurrency keys.
 	//
-	// Users may specify up to 2 concurrency keys.
+	// Users may specify up to 3 concurrency keys.
 	Concurrency *ConcurrencyLimits `json:"concurrency,omitempty"`
 
 	Debounce *Debounce `json:"debounce,omitempty"`

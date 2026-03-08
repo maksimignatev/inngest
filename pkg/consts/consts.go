@@ -66,7 +66,7 @@ const (
 	MaxCancellations = 5
 
 	// MaxConcurrencyLimits limits the max concurrency constraints for a specific function.
-	MaxConcurrencyLimits = 2
+	MaxConcurrencyLimits = 3
 
 	// MaxTriggers represents the maximum number of triggers a function can have.
 	MaxTriggers = 10

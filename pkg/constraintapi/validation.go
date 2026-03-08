@@ -22,7 +22,7 @@ const (
 	// Max constraints per kind
 	MaxRateLimits            = 1
 	MaxThrottles             = 1
-	MaxCustomConcurrencyKeys = 2
+	MaxCustomConcurrencyKeys = 3
 )
 
 func (r *CapacityCheckRequest) Valid() error {

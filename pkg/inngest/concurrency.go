@@ -96,7 +96,7 @@ func (c *ConcurrencyLimits) UnmarshalJSON(b []byte) error {
 	for n, item := range c.Limits {
 		if item.Key != nil && item.Hash == "" {
 			// Use xxhash for 64 bit hashing.  While this can have collisions, the
-			// chance over the max of 2 keys is extremely low (almost impossible) and
+			// chance over the max of 3 keys is extremely low (almost impossible) and
 			// it's much faster/shorter.
 			c.Limits[n].Hash = hashConcurrencyKey(*item.Key)
 		}
