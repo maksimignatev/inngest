@@ -30,26 +30,29 @@ local keyInProgressAccount                  = KEYS[16]
 local keyInProgressPartition                = KEYS[17] -- Account concurrency level
 local keyInProgressCustomConcurrencyKey1    = KEYS[18] -- When leasing an item we need to place the lease into this key.
 local keyInProgressCustomConcurrencyKey2    = KEYS[19] -- Optional for eg. for concurrency amongst steps
+local keyInProgressCustomConcurrencyKey3    = KEYS[20]
 
-local keyActiveAccount             = KEYS[20]
-local keyActivePartition           = KEYS[21]
-local keyActiveConcurrencyKey1     = KEYS[22]
-local keyActiveConcurrencyKey2     = KEYS[23]
-local keyActiveCompound            = KEYS[24]
+local keyActiveAccount             = KEYS[21]
+local keyActivePartition           = KEYS[22]
+local keyActiveConcurrencyKey1     = KEYS[23]
+local keyActiveConcurrencyKey2     = KEYS[24]
+local keyActiveConcurrencyKey3     = KEYS[25]
+local keyActiveCompound            = KEYS[26]
 
-local keyActiveRun                        = KEYS[25]
-local keyActiveRunsAccount                = KEYS[26]
-local keyActiveRunsPartition              = KEYS[27]
-local keyActiveRunsCustomConcurrencyKey1  = KEYS[28]
-local keyActiveRunsCustomConcurrencyKey2  = KEYS[29]
+local keyActiveRun                        = KEYS[27]
+local keyActiveRunsAccount                = KEYS[28]
+local keyActiveRunsPartition              = KEYS[29]
+local keyActiveRunsCustomConcurrencyKey1  = KEYS[30]
+local keyActiveRunsCustomConcurrencyKey2  = KEYS[31]
+local keyActiveRunsCustomConcurrencyKey3  = KEYS[32]
 
-local keyIdempotency           = KEYS[30]
-local singletonRunKey          = KEYS[31]
+local keyIdempotency           = KEYS[33]
+local singletonRunKey          = KEYS[34]
 
-local keyPartitionScavengerIndex  = KEYS[32]
+local keyPartitionScavengerIndex  = KEYS[35]
 
-local keyItemIndexA            = KEYS[33]   -- custom item index 1
-local keyItemIndexB            = KEYS[34]  -- custom item index 2
+local keyItemIndexA            = KEYS[36]   -- custom item index 1
+local keyItemIndexB            = KEYS[37]  -- custom item index 2
 
 local queueID        = ARGV[1]
 local partitionID    = ARGV[2]
@@ -102,6 +105,10 @@ if updateConstraintState == 1 then
     handleDequeueConcurrency(keyInProgressCustomConcurrencyKey2)
   end
 
+  if exists_without_ending(keyInProgressCustomConcurrencyKey3, ":-") then
+    handleDequeueConcurrency(keyInProgressCustomConcurrencyKey3)
+  end
+
   if exists_without_ending(keyInProgressAccount, ":-") then
     -- This does not have a scavenger queue, as it's purely an entitlement limitation. See extendLease
     -- and Lease for respective ZADD calls.
@@ -109,8 +116,8 @@ if updateConstraintState == 1 then
   end
 
   -- Remove item from active sets
-  removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, queueID)
-  removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, runID, queueID)
+  removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, keyActiveConcurrencyKey3, queueID)
+  removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, keyActiveRunsCustomConcurrencyKey3, runID, queueID)
 end
 
 -- Remove item from scavenger index

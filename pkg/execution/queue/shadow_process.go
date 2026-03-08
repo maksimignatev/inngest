@@ -591,6 +591,13 @@ func (q *queueProcessor) ProcessShadowPartitionBacklog(
 			if len(backlog.ConcurrencyKeys) > 1 {
 				q.lifecycles.OnCustomKeyConcurrencyLimitReached(context.WithoutCancel(ctx), backlog.ConcurrencyKeys[1].CanonicalKeyID)
 			}
+		case enums.QueueConstraintCustomConcurrencyKey3:
+			if shadowPart.FunctionID != nil {
+				q.lifecycles.OnFnConcurrencyLimitReached(context.WithoutCancel(ctx), *shadowPart.FunctionID)
+			}
+			if len(backlog.ConcurrencyKeys) > 2 {
+				q.lifecycles.OnCustomKeyConcurrencyLimitReached(context.WithoutCancel(ctx), backlog.ConcurrencyKeys[2].CanonicalKeyID)
+			}
 		default:
 		}
 	}
@@ -598,7 +605,7 @@ func (q *queueProcessor) ProcessShadowPartitionBacklog(
 	forceRequeueBacklogAt := res.RetryAt
 	switch res.Constraint {
 	// If backlog is concurrency limited by custom key, requeue just this backlog in the future
-	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2:
+	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2, enums.QueueConstraintCustomConcurrencyKey3:
 		forceRequeueBacklogAt = backlog.requeueBackOff(q.Clock().Now(), res.Constraint)
 	}
 

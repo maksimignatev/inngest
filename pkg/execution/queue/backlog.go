@@ -137,7 +137,7 @@ func (b QueueBacklog) CustomConcurrencyKeyID(n int) string {
 
 func (b QueueBacklog) requeueBackOff(now time.Time, constraint enums.QueueConstraint) time.Time {
 	switch constraint {
-	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2:
+	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2, enums.QueueConstraintCustomConcurrencyKey3:
 		next := time.Duration(b.SuccessiveCustomConcurrencyConstrained) * time.Second
 
 		if next > PartitionConcurrencyLimitRequeueExtension {

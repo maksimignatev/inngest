@@ -24,7 +24,8 @@
   2 - Function concurrency limit reached
   3 - Custom concurrency key 1 limit reached
   4 - Custom concurrency key 2 limit reached
-  5 - Throttled
+  5 - Custom concurrency key 3 limit reached
+  6 - Throttled
 ]]
 
 local keyShadowPartitionMeta             = KEYS[1]
@@ -48,19 +49,21 @@ local keyActiveAccount           = KEYS[13]
 local keyActivePartition         = KEYS[14]
 local keyActiveConcurrencyKey1   = KEYS[15]
 local keyActiveConcurrencyKey2   = KEYS[16]
-local keyActiveCompound          = KEYS[17]
+local keyActiveConcurrencyKey3   = KEYS[17]
+local keyActiveCompound          = KEYS[18]
 
-local keyActiveRunsAccount                = KEYS[18]
-local keyActiveRunsPartition              = KEYS[19]
-local keyActiveRunsCustomConcurrencyKey1  = KEYS[20]
-local keyActiveRunsCustomConcurrencyKey2  = KEYS[21]
+local keyActiveRunsAccount                = KEYS[19]
+local keyActiveRunsPartition              = KEYS[20]
+local keyActiveRunsCustomConcurrencyKey1  = KEYS[21]
+local keyActiveRunsCustomConcurrencyKey2  = KEYS[22]
+local keyActiveRunsCustomConcurrencyKey3  = KEYS[23]
 
-local keyBacklogActiveCheckSet       = KEYS[22]
-local keyBacklogActiveCheckCooldown  = KEYS[23]
+local keyBacklogActiveCheckSet       = KEYS[24]
+local keyBacklogActiveCheckCooldown  = KEYS[25]
 
-local keyPartitionNormalizeSet       = KEYS[24]
+local keyPartitionNormalizeSet       = KEYS[26]
 
-local keyConstraintCheckIdempotency = KEYS[25]
+local keyConstraintCheckIdempotency = KEYS[27]
 
 local backlogID     = ARGV[1]
 local partitionID   = ARGV[2]
@@ -74,23 +77,24 @@ local concurrencyAcct 				= tonumber(ARGV[7])
 local concurrencyFn    				= tonumber(ARGV[8])
 local customConcurrencyKey1   = tonumber(ARGV[9])
 local customConcurrencyKey2   = tonumber(ARGV[10])
+local customConcurrencyKey3   = tonumber(ARGV[11])
 
 -- We check throttle before refilling
-local throttleKey    = ARGV[11]
-local throttleLimit  = tonumber(ARGV[12])
-local throttleBurst  = tonumber(ARGV[13])
-local throttlePeriod = tonumber(ARGV[14])
+local throttleKey    = ARGV[12]
+local throttleLimit  = tonumber(ARGV[13])
+local throttleBurst  = tonumber(ARGV[14])
+local throttlePeriod = tonumber(ARGV[15])
 
-local keyPrefix = ARGV[15]
+local keyPrefix = ARGV[16]
 
-local checkConstraints = tonumber(ARGV[16])
+local checkConstraints = tonumber(ARGV[17])
 
-local shouldSpotCheckActiveSet = tonumber(ARGV[17])
+local shouldSpotCheckActiveSet = tonumber(ARGV[18])
 
 -- Constraint API rollout
 local itemCapacityLeases = {}
-if ARGV[18] ~= nil and ARGV[18] ~= "" and ARGV[18] ~= "null" then
-  local success, result = pcall(cjson.decode, ARGV[18])
+if ARGV[19] ~= nil and ARGV[19] ~= "" and ARGV[19] ~= "null" then
+  local success, result = pcall(cjson.decode, ARGV[19])
   if success and type(result) == "table" then
     itemCapacityLeases = result
   end
@@ -176,8 +180,18 @@ if checkConstraints == 1 then
     local throttleRetryAt = gcraRes[2]
     if constraintCapacity == nil or remainingThrottleCapacity < constraintCapacity then
       constraintCapacity = remainingThrottleCapacity
-      status = 5
+      status = 6
       retryAt = throttleRetryAt
+    end
+  end
+
+  -- Check custom concurrency key 3 capacity
+  if (constraintCapacity == nil or constraintCapacity > 0) and exists_without_ending(keyActiveConcurrencyKey3, ":-") == true and customConcurrencyKey3 > 0 then
+    local remainingCustomConcurrencyCapacityKey3 = check_active_capacity(nowMS, keyActiveConcurrencyKey3, customConcurrencyKey3)
+    if constraintCapacity == nil or remainingCustomConcurrencyCapacityKey3 < constraintCapacity then
+      -- Custom concurrency key 3 imposes limits
+      constraintCapacity = remainingCustomConcurrencyCapacityKey3
+      status = 5
     end
   end
 
@@ -311,7 +325,7 @@ if refill > 0 then
         local runID = updatedData.data.identifier.runID
         local keyActiveRun = string.format("%s:v2:active:run:%s", keyPrefix, runID)
 
-        addToActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, runID, itemID)
+        addToActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, keyActiveRunsCustomConcurrencyKey3, runID, itemID)
       end
 
       table.insert(itemUpdateArgs, itemID)
@@ -329,7 +343,7 @@ if refill > 0 then
     redis.call("ZADD", keyReadySet, unpack(readyArgs))
 
     if checkConstraints == 1 then
-      addToActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, refilledItemIDs)
+      addToActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, keyActiveConcurrencyKey3, refilledItemIDs)
     end
 
     -- Update queue items with refill data
@@ -383,7 +397,7 @@ local function update_backlog_successive_constrained_counters(keyBacklogMeta, ba
   end
 
   -- If custom concurrency limits hit, increase counter
-  if status == 3 or status == 4 then
+  if status == 3 or status == 4 or status == 5 then
     local previousSuccessiveCustomConcurrencyConstrained = existing.sccc
     if previousSuccessiveCustomConcurrencyConstrained == false or previousSuccessiveCustomConcurrencyConstrained == nil then
       previousSuccessiveCustomConcurrencyConstrained = 0
@@ -393,7 +407,7 @@ local function update_backlog_successive_constrained_counters(keyBacklogMeta, ba
   end
 
   -- If throttled, increase counter
-  if status == 5 then
+  if status == 6 then
     local previousSuccessiveThrottleConstrained = existing.stc
     if previousSuccessiveThrottleConstrained == false or previousSuccessiveThrottleConstrained == nil then
       previousSuccessiveThrottleConstrained = 0
@@ -419,7 +433,7 @@ updateBacklogPointer(keyShadowPartitionMeta, keyBacklogMeta, keyGlobalShadowPart
 -- Optional: Add backlog to active checker set. This will verify that all items marked as active
 -- are either in the ready queue or in progress.
 --
-local concurrencyConstrained = status >= 1 and status <= 4
+local concurrencyConstrained = status >= 1 and status <= 5
 if concurrencyConstrained and shouldSpotCheckActiveSet == 1 then
     add_to_active_check(keyBacklogActiveCheckSet, keyBacklogActiveCheckCooldown, backlogID, nowMS)
 end

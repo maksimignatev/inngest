@@ -105,6 +105,15 @@ func ConvertLimitingConstraint(
 				c.Concurrency.KeyExpressionHash == constraints.Concurrency.CustomConcurrencyKeys[1].HashedKeyExpression:
 			constraint = enums.QueueConstraintCustomConcurrencyKey2
 
+		// Custom concurrency key 3
+		case
+			len(constraints.Concurrency.CustomConcurrencyKeys) > 2 &&
+				c.Kind == constraintapi.ConstraintKindConcurrency &&
+				c.Concurrency.Mode == constraints.Concurrency.CustomConcurrencyKeys[2].Mode &&
+				c.Concurrency.Scope == constraints.Concurrency.CustomConcurrencyKeys[2].Scope &&
+				c.Concurrency.KeyExpressionHash == constraints.Concurrency.CustomConcurrencyKeys[2].HashedKeyExpression:
+			constraint = enums.QueueConstraintCustomConcurrencyKey3
+
 		// Throttle
 		case
 			c.Kind == constraintapi.ConstraintKindThrottle:

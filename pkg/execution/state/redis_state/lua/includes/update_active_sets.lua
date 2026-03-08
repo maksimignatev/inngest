@@ -1,4 +1,4 @@
-local function addToActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, itemIDs)
+local function addToActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, keyActiveConcurrencyKey3, itemIDs)
   -- Increase active sets by number of refilled items
   redis.call("SADD", keyActivePartition, unpack(itemIDs))
 
@@ -17,9 +17,13 @@ local function addToActiveSets(keyActivePartition, keyActiveAccount, keyActiveCo
   if exists_without_ending(keyActiveConcurrencyKey2, ":-") then
     redis.call("SADD", keyActiveConcurrencyKey2, unpack(itemIDs))
   end
+
+  if exists_without_ending(keyActiveConcurrencyKey3, ":-") then
+    redis.call("SADD", keyActiveConcurrencyKey3, unpack(itemIDs))
+  end
 end
 
-local function removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, itemID)
+local function removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, keyActiveConcurrencyKey3, itemID)
   -- Decrease active sets and clean up if necessary
   redis.call("SREM", keyActivePartition, itemID)
 
@@ -38,9 +42,13 @@ local function removeFromActiveSets(keyActivePartition, keyActiveAccount, keyAct
   if exists_without_ending(keyActiveConcurrencyKey2, ":-") then
     redis.call("SREM", keyActiveConcurrencyKey2, itemID)
   end
+
+  if exists_without_ending(keyActiveConcurrencyKey3, ":-") then
+    redis.call("SREM", keyActiveConcurrencyKey3, itemID)
+  end
 end
 
-local function addToActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, runID, itemID)
+local function addToActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, keyActiveRunsCustomConcurrencyKey3, runID, itemID)
   if exists_without_ending(keyActiveRun, ":-") then
     redis.call("SADD", keyActiveRun, itemID)
 
@@ -62,11 +70,15 @@ local function addToActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiv
       if exists_without_ending(keyActiveRunsCustomConcurrencyKey2, ":-") then
         redis.call("SADD", keyActiveRunsCustomConcurrencyKey2, runID)
       end
+
+      if exists_without_ending(keyActiveRunsCustomConcurrencyKey3, ":-") then
+        redis.call("SADD", keyActiveRunsCustomConcurrencyKey3, runID)
+      end
     end
   end
 end
 
-local function removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, runID, itemID)
+local function removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, keyActiveRunsCustomConcurrencyKey3, runID, itemID)
   if exists_without_ending(keyActiveRun, ":-") then
     redis.call("SREM", keyActiveRun, itemID)
 
@@ -86,6 +98,10 @@ local function removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, key
 
       if exists_without_ending(keyActiveRunsCustomConcurrencyKey2, ":-") then
         redis.call("SREM", keyActiveRunsCustomConcurrencyKey2, runID)
+      end
+
+      if exists_without_ending(keyActiveRunsCustomConcurrencyKey3, ":-") then
+        redis.call("SREM", keyActiveRunsCustomConcurrencyKey3, runID)
       end
     end
   end

@@ -247,6 +247,8 @@ func (p *ProcessorIterator) Process(ctx context.Context, item *QueueItem) error 
 		err = NewKeyError(ErrConcurrencyLimitCustomKey, backlog.CustomConcurrencyKeyID(1))
 	case enums.QueueConstraintCustomConcurrencyKey2:
 		err = NewKeyError(ErrConcurrencyLimitCustomKey, backlog.CustomConcurrencyKeyID(2))
+	case enums.QueueConstraintCustomConcurrencyKey3:
+		err = NewKeyError(ErrConcurrencyLimitCustomKey, backlog.CustomConcurrencyKeyID(3))
 	default:
 		l.ReportError(errors.New("unhandled queue constraint type"), fmt.Sprintf("constraint type: %s", constraintRes.LimitingConstraint))
 		// Limited but the constraint is unknown?

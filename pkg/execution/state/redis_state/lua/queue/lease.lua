@@ -8,10 +8,11 @@ Output:
   -3: First partition concurrency limit hit
   -4: Second partition concurrency limit hit
   -5: Third partition concurrency limit hit
+  -6: Fourth partition concurrency limit hit
 
-  -6: Account concurrency limit hit
+  -7: Account concurrency limit hit
 
-  -7: Rate limited via throttling;  no capacity.
+  -8: Rate limited via throttling;  no capacity.
 ]]
 
 local keyQueueMap = KEYS[1]
@@ -24,29 +25,33 @@ local keyInProgressAccount = KEYS[4]
 local keyInProgressPartition = KEYS[5]
 local keyInProgressCustomConcurrencyKey1 = KEYS[6]
 local keyInProgressCustomConcurrencyKey2 = KEYS[7]
+local keyInProgressCustomConcurrencyKey3 = KEYS[8]
 
 -- Active sets for constraint capacity accounting
-local keyActiveAccount = KEYS[8]
-local keyActivePartition = KEYS[9]
-local keyActiveConcurrencyKey1 = KEYS[10]
-local keyActiveConcurrencyKey2 = KEYS[11]
-local keyActiveCompound = KEYS[12]
+local keyActiveAccount = KEYS[9]
+local keyActivePartition = KEYS[10]
+local keyActiveConcurrencyKey1 = KEYS[11]
+local keyActiveConcurrencyKey2 = KEYS[12]
+local keyActiveConcurrencyKey3 = KEYS[13]
+local keyActiveCompound = KEYS[14]
 
-local keyActiveRun = KEYS[13]
-local keyActiveRunsAccount = KEYS[14]
-local keyActiveRunsPartition = KEYS[15]
-local keyActiveRunsCustomConcurrencyKey1 = KEYS[16]
-local keyActiveRunsCustomConcurrencyKey2 = KEYS[17]
+local keyActiveRun = KEYS[15]
+local keyActiveRunsAccount = KEYS[16]
+local keyActiveRunsPartition = KEYS[17]
+local keyActiveRunsCustomConcurrencyKey1 = KEYS[18]
+local keyActiveRunsCustomConcurrencyKey2 = KEYS[19]
+local keyActiveRunsCustomConcurrencyKey3 = KEYS[20]
 
-local throttleKey = KEYS[18]
+local throttleKey = KEYS[21]
 
-local keyInProgressLeasesAcct = KEYS[19]
-local keyInProgressLeasesFn = KEYS[20]
-local keyInProgressLeasesCustom1 = KEYS[21]
-local keyInProgressLeasesCustom2 = KEYS[22]
-local keyConstraintCheckIdempotency = KEYS[23]
+local keyInProgressLeasesAcct = KEYS[22]
+local keyInProgressLeasesFn = KEYS[23]
+local keyInProgressLeasesCustom1 = KEYS[24]
+local keyInProgressLeasesCustom2 = KEYS[25]
+local keyInProgressLeasesCustom3 = KEYS[26]
+local keyConstraintCheckIdempotency = KEYS[27]
 
-local keyPartitionScavengerIndex = KEYS[24]
+local keyPartitionScavengerIndex = KEYS[28]
 
 local queueID = ARGV[1]
 local partitionID = ARGV[2]
@@ -61,12 +66,13 @@ local concurrencyAcct = tonumber(ARGV[7])
 local concurrencyPartition = tonumber(ARGV[8])
 local customConcurrencyKey1 = tonumber(ARGV[9])
 local customConcurrencyKey2 = tonumber(ARGV[10])
-local marshaledConstraints = ARGV[11]
+local customConcurrencyKey3 = tonumber(ARGV[11])
+local marshaledConstraints = ARGV[12]
 
 -- key queues v2
-local refilledFromBacklog = tonumber(ARGV[12])
+local refilledFromBacklog = tonumber(ARGV[13])
 
-local checkConstraints = tonumber(ARGV[13])
+local checkConstraints = tonumber(ARGV[14])
 
 -- Use our custom Go preprocessor to inject the file from ./includes/
 -- $include(decode_ulid_time.lua)
@@ -126,7 +132,7 @@ if checkConstraints == 1 then
 		local throttleResult =
 			gcra(throttleKey, currentTime, constraints.t.p * 1000, constraints.t.l, constraints.t.b)
 		if throttleResult[1] == false then
-			return -7
+			return -8
 		end
 		usedThrottleBurst = throttleResult[2]
 	end
@@ -152,6 +158,15 @@ if checkConstraints == 1 then
 			return -5
 		end
 	end
+	if customConcurrencyKey3 > 0 then
+		local customCap = check_concurrency(currentTime, keyInProgressCustomConcurrencyKey3, customConcurrencyKey3)
+		if exists_without_ending(keyInProgressLeasesCustom3, ":-") then
+			customCap = customCap - count_concurrency(keyInProgressLeasesCustom3, currentTime)
+		end
+		if customCap <= 0 then
+			return -6
+		end
+	end
 	if concurrencyPartition > 0 then
 		local partCap = check_concurrency(currentTime, keyInProgressPartition, concurrencyPartition)
 		if exists_without_ending(keyInProgressLeasesFn, ":-") then
@@ -167,7 +182,7 @@ if checkConstraints == 1 then
 			accountCap = accountCap - count_concurrency(keyInProgressLeasesAcct, currentTime)
 		end
 		if accountCap <= 0 then
-			return -6
+			return -7
 		end
 	end
 end
@@ -205,6 +220,10 @@ if checkConstraints == 1 then
 		handleLease(keyInProgressCustomConcurrencyKey2, customConcurrencyKey2)
 	end
 
+	if exists_without_ending(keyInProgressCustomConcurrencyKey3, ":-") == true then
+		handleLease(keyInProgressCustomConcurrencyKey3, customConcurrencyKey3)
+	end
+
 	-- Update active sets for BacklogRefill
 	addToActiveSets(
 		keyActivePartition,
@@ -212,6 +231,7 @@ if checkConstraints == 1 then
 		keyActiveCompound,
 		keyActiveConcurrencyKey1,
 		keyActiveConcurrencyKey2,
+		keyActiveConcurrencyKey3,
 		{ item.id }
 	)
 	addToActiveRunSets(
@@ -220,6 +240,7 @@ if checkConstraints == 1 then
 		keyActiveRunsAccount,
 		keyActiveRunsCustomConcurrencyKey1,
 		keyActiveRunsCustomConcurrencyKey2,
+		keyActiveRunsCustomConcurrencyKey3,
 		runID,
 		item.id
 	)

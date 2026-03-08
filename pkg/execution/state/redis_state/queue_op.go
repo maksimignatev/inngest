@@ -80,12 +80,14 @@ func (q *queue) Dequeue(ctx context.Context, i osqueue.QueueItem, options ...osq
 		shadowPartitionInProgressKey(partition, kg),
 		backlogCustomKeyInProgress(backlog, kg, 1),
 		backlogCustomKeyInProgress(backlog, kg, 2),
+		backlogCustomKeyInProgress(backlog, kg, 3),
 
 		// Active set keys
 		shadowPartitionAccountActiveKey(partition, kg),
 		shadowPartitionActiveKey(partition, kg),
 		backlogCustomKeyActive(backlog, kg, 1),
 		backlogCustomKeyActive(backlog, kg, 2),
+		backlogCustomKeyActive(backlog, kg, 3),
 		backlogActiveKey(backlog, kg),
 
 		// Active run sets
@@ -94,6 +96,7 @@ func (q *queue) Dequeue(ctx context.Context, i osqueue.QueueItem, options ...osq
 		shadowPartitionActiveRunKey(partition, kg),        // Set for active runs in partition
 		backlogCustomKeyActiveRuns(backlog, kg, 1),        // Set for active runs with custom concurrency key 1
 		backlogCustomKeyActiveRuns(backlog, kg, 2),        // Set for active runs with custom concurrency key 2
+		backlogCustomKeyActiveRuns(backlog, kg, 3),        // Set for active runs with custom concurrency key 3
 
 		kg.Idempotency(i.ID),
 
@@ -260,12 +263,14 @@ func (q *queue) Requeue(ctx context.Context, i osqueue.QueueItem, at time.Time, 
 		shadowPartitionInProgressKey(shadowPartition, kg),
 		backlogCustomKeyInProgress(backlog, kg, 1),
 		backlogCustomKeyInProgress(backlog, kg, 2),
+		backlogCustomKeyInProgress(backlog, kg, 3),
 
 		// Active set keys
 		shadowPartitionAccountActiveKey(shadowPartition, kg),
 		shadowPartitionActiveKey(shadowPartition, kg),
 		backlogCustomKeyActive(backlog, kg, 1),
 		backlogCustomKeyActive(backlog, kg, 2),
+		backlogCustomKeyActive(backlog, kg, 3),
 		backlogActiveKey(backlog, kg),
 
 		// Active run sets
@@ -274,6 +279,7 @@ func (q *queue) Requeue(ctx context.Context, i osqueue.QueueItem, at time.Time, 
 		shadowPartitionActiveRunKey(shadowPartition, kg),        // Set for active runs in partition
 		backlogCustomKeyActiveRuns(backlog, kg, 1),              // Set for active runs with custom concurrency key 1
 		backlogCustomKeyActiveRuns(backlog, kg, 2),              // Set for active runs with custom concurrency key 2
+		backlogCustomKeyActiveRuns(backlog, kg, 3),              // Set for active runs with custom concurrency key 3
 
 		// key queues v2
 		kg.BacklogSet(backlog.BacklogID),
