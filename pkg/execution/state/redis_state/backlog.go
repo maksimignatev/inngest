@@ -224,6 +224,7 @@ func (q *queue) BacklogRefill(
 		shadowPartitionActiveKey(*sp, kg),        // partition active
 		backlogCustomKeyActive(*b, kg, 1),        // custom key 1
 		backlogCustomKeyActive(*b, kg, 2),        // custom key 2
+		backlogCustomKeyActive(*b, kg, 3),        // custom key 3
 		backlogActiveKey(*b, kg),                 // compound key (active for this backlog)
 
 		// Active run sets
@@ -232,6 +233,7 @@ func (q *queue) BacklogRefill(
 		shadowPartitionActiveRunKey(*sp, kg),        // Set for active runs in partition
 		backlogCustomKeyActiveRuns(*b, kg, 1),       // Set for active runs with custom concurrency key 1
 		backlogCustomKeyActiveRuns(*b, kg, 2),       // Set for active runs with custom concurrency key 2
+		backlogCustomKeyActiveRuns(*b, kg, 3),       // Set for active runs with custom concurrency key 3
 
 		kg.BacklogActiveCheckSet(),
 		kg.BacklogActiveCheckCooldown(b.BacklogID),
@@ -277,6 +279,7 @@ func (q *queue) BacklogRefill(
 		latestConstraints.Concurrency.FunctionConcurrency,
 		latestConstraints.CustomConcurrencyLimit(1),
 		latestConstraints.CustomConcurrencyLimit(2),
+		latestConstraints.CustomConcurrencyLimit(3),
 
 		keyThrottleState,
 		throttleLimit,
@@ -387,6 +390,9 @@ func (q *queue) BacklogRefill(
 		refillResult.Constraint = enums.QueueConstraintCustomConcurrencyKey2
 		return refillResult, nil
 	case 5:
+		refillResult.Constraint = enums.QueueConstraintCustomConcurrencyKey3
+		return refillResult, nil
+	case 6:
 		refillResult.Constraint = enums.QueueConstraintThrottle
 		return refillResult, nil
 	default:

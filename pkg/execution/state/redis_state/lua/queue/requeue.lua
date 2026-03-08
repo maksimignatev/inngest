@@ -22,31 +22,34 @@ local keyInProgressAccount                  = KEYS[8]
 local keyInProgressPartition                = KEYS[9]
 local keyInProgressCustomConcurrencyKey1    = KEYS[10]
 local keyInProgressCustomConcurrencyKey2    = KEYS[11]
+local keyInProgressCustomConcurrencyKey3    = KEYS[12]
 
-local keyActiveAccount             = KEYS[12]
-local keyActivePartition           = KEYS[13]
-local keyActiveConcurrencyKey1     = KEYS[14]
-local keyActiveConcurrencyKey2     = KEYS[15]
-local keyActiveCompound            = KEYS[16]
+local keyActiveAccount             = KEYS[13]
+local keyActivePartition           = KEYS[14]
+local keyActiveConcurrencyKey1     = KEYS[15]
+local keyActiveConcurrencyKey2     = KEYS[16]
+local keyActiveConcurrencyKey3     = KEYS[17]
+local keyActiveCompound            = KEYS[18]
 
-local keyActiveRun                        = KEYS[17]
-local keyActiveRunsAccount                = KEYS[18]
-local keyActiveRunsPartition              = KEYS[19]
-local keyActiveRunsCustomConcurrencyKey1  = KEYS[20]
-local keyActiveRunsCustomConcurrencyKey2  = KEYS[21]
+local keyActiveRun                        = KEYS[19]
+local keyActiveRunsAccount                = KEYS[20]
+local keyActiveRunsPartition              = KEYS[21]
+local keyActiveRunsCustomConcurrencyKey1  = KEYS[22]
+local keyActiveRunsCustomConcurrencyKey2  = KEYS[23]
+local keyActiveRunsCustomConcurrencyKey3  = KEYS[24]
 
-local keyBacklogSet                      = KEYS[22]          -- backlog:sorted:<backlogID> - zset
-local keyBacklogMeta                     = KEYS[23]          -- backlogs - hash
-local keyGlobalShadowPartitionSet        = KEYS[24]          -- shadow:sorted
-local keyShadowPartitionSet              = KEYS[25]          -- shadow:sorted:<fnID|queueName> - zset
-local keyShadowPartitionMeta             = KEYS[26]          -- shadows
-local keyGlobalAccountShadowPartitionSet = KEYS[27]
-local keyAccountShadowPartitionSet       = KEYS[28]
+local keyBacklogSet                      = KEYS[25]          -- backlog:sorted:<backlogID> - zset
+local keyBacklogMeta                     = KEYS[26]          -- backlogs - hash
+local keyGlobalShadowPartitionSet        = KEYS[27]          -- shadow:sorted
+local keyShadowPartitionSet              = KEYS[28]          -- shadow:sorted:<fnID|queueName> - zset
+local keyShadowPartitionMeta             = KEYS[29]          -- shadows
+local keyGlobalAccountShadowPartitionSet = KEYS[30]
+local keyAccountShadowPartitionSet       = KEYS[31]
 
-local keyPartitionScavengerIndex  = KEYS[29]
+local keyPartitionScavengerIndex  = KEYS[32]
 
-local keyItemIndexA           = KEYS[30]          -- custom item index 1
-local keyItemIndexB           = KEYS[31]          -- custom item index 2
+local keyItemIndexA           = KEYS[33]          -- custom item index 1
+local keyItemIndexB           = KEYS[34]          -- custom item index 2
 
 local queueID             = ARGV[1]           -- id
 local queueItem           = ARGV[2]
@@ -108,6 +111,10 @@ if updateConstraintState == 1 then
     handleRequeueConcurrency(keyInProgressCustomConcurrencyKey2)
   end
 
+  if exists_without_ending(keyInProgressCustomConcurrencyKey3, ":-") then
+    handleRequeueConcurrency(keyInProgressCustomConcurrencyKey3)
+  end
+
   if exists_without_ending(keyInProgressAccount, ":-") then
       -- Remove item from the account concurrency queue
       -- This does not have a scavenger queue, as it's purely an entitlement limitation. See extendLease
@@ -116,8 +123,8 @@ if updateConstraintState == 1 then
   end
 
   -- Remove item from active sets
-  removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, queueID)
-  removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, runID, queueID)
+  removeFromActiveSets(keyActivePartition, keyActiveAccount, keyActiveCompound, keyActiveConcurrencyKey1, keyActiveConcurrencyKey2, keyActiveConcurrencyKey3, queueID)
+  removeFromActiveRunSets(keyActiveRun, keyActiveRunsPartition, keyActiveRunsAccount, keyActiveRunsCustomConcurrencyKey1, keyActiveRunsCustomConcurrencyKey2, keyActiveRunsCustomConcurrencyKey3, runID, queueID)
 end
 
 -- Remove item from scavenger index

@@ -104,7 +104,7 @@ func (b QueueBacklog) IsOutdated(constraints PartitionConstraintConfig) enums.Qu
 	}
 
 	// All concurrency keys on backlog must be found on partition
-	// This is quadratic but each backlog and shadow partition can only have up to 2 keys, so it's bounded.
+	// This is quadratic but each backlog and shadow partition can only have up to 3 keys, so it's bounded.
 	for _, backlogKey := range b.ConcurrencyKeys {
 		hasKey := false
 		for _, shadowPartitionKey := range constraints.Concurrency.CustomConcurrencyKeys {
@@ -137,7 +137,7 @@ func (b QueueBacklog) CustomConcurrencyKeyID(n int) string {
 
 func (b QueueBacklog) requeueBackOff(now time.Time, constraint enums.QueueConstraint) time.Time {
 	switch constraint {
-	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2:
+	case enums.QueueConstraintCustomConcurrencyKey1, enums.QueueConstraintCustomConcurrencyKey2, enums.QueueConstraintCustomConcurrencyKey3:
 		next := time.Duration(b.SuccessiveCustomConcurrencyConstrained) * time.Second
 
 		if next > PartitionConcurrencyLimitRequeueExtension {

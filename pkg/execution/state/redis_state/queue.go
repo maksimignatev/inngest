@@ -890,6 +890,12 @@ func (q *queue) Lease(
 		if denies != nil && len(o.Backlog.ConcurrencyKeys) > 1 && denies.DenyConcurrency(o.Backlog.CustomConcurrencyKeyID(2)) {
 			return nil, osqueue.ErrConcurrencyLimitCustomKey
 		}
+
+		// Check to see if this key has already been denied in the lease iteration.
+		// If so, fail early.
+		if denies != nil && len(o.Backlog.ConcurrencyKeys) > 2 && denies.DenyConcurrency(o.Backlog.CustomConcurrencyKeyID(3)) {
+			return nil, osqueue.ErrConcurrencyLimitCustomKey
+		}
 	}
 
 	leaseID, err := ulid.New(ulid.Timestamp(now.Add(leaseDuration).UTC()), rnd)
@@ -937,12 +943,14 @@ func (q *queue) Lease(
 		shadowPartitionInProgressKey(o.ShadowPartition, kg),
 		backlogCustomKeyInProgress(o.Backlog, kg, 1),
 		backlogCustomKeyInProgress(o.Backlog, kg, 2),
+		backlogCustomKeyInProgress(o.Backlog, kg, 3),
 
 		// Active set keys (ready + in progress)
 		shadowPartitionAccountActiveKey(o.ShadowPartition, kg),
 		shadowPartitionActiveKey(o.ShadowPartition, kg),
 		backlogCustomKeyActive(o.Backlog, kg, 1),
 		backlogCustomKeyActive(o.Backlog, kg, 2),
+		backlogCustomKeyActive(o.Backlog, kg, 3),
 		backlogActiveKey(o.Backlog, kg),
 
 		// Active run sets
@@ -951,6 +959,7 @@ func (q *queue) Lease(
 		shadowPartitionActiveRunKey(o.ShadowPartition, kg),        // Set for active runs in partition
 		backlogCustomKeyActiveRuns(o.Backlog, kg, 1),              // Set for active runs with custom concurrency key 1
 		backlogCustomKeyActiveRuns(o.Backlog, kg, 2),              // Set for active runs with custom concurrency key 2
+		backlogCustomKeyActiveRuns(o.Backlog, kg, 3),              // Set for active runs with custom concurrency key 3
 
 		kg.ThrottleKey(item.Data.Throttle),
 
@@ -959,6 +968,7 @@ func (q *queue) Lease(
 		shadowPartitionFunctionInProgressLeasesKey(o.ShadowPartition, kg, q.CapacityManager),
 		backlogInProgressLeasesCustomKey(o.Backlog, q.CapacityManager, kg, o.ShadowPartition.AccountID, 1),
 		backlogInProgressLeasesCustomKey(o.Backlog, q.CapacityManager, kg, o.ShadowPartition.AccountID, 2),
+		backlogInProgressLeasesCustomKey(o.Backlog, q.CapacityManager, kg, o.ShadowPartition.AccountID, 3),
 		q.keyConstraintCheckIdempotency(o.ShadowPartition.AccountID, item.ID),
 
 		kg.PartitionScavengerIndex(o.ShadowPartition.PartitionID),
@@ -988,6 +998,7 @@ func (q *queue) Lease(
 		partConcurrency,
 		o.Constraints.CustomConcurrencyLimit(1),
 		o.Constraints.CustomConcurrencyLimit(2),
+		o.Constraints.CustomConcurrencyLimit(3),
 		string(marshaledConstraints),
 
 		// Key queues v2
@@ -1092,8 +1103,10 @@ func (q *queue) Lease(
 	case -5:
 		return nil, osqueue.NewKeyError(osqueue.ErrConcurrencyLimitCustomKey, o.Backlog.CustomConcurrencyKeyID(2))
 	case -6:
-		return nil, osqueue.NewKeyError(osqueue.ErrAccountConcurrencyLimit, item.Data.Identifier.AccountID.String())
+		return nil, osqueue.NewKeyError(osqueue.ErrConcurrencyLimitCustomKey, o.Backlog.CustomConcurrencyKeyID(3))
 	case -7:
+		return nil, osqueue.NewKeyError(osqueue.ErrAccountConcurrencyLimit, item.Data.Identifier.AccountID.String())
+	case -8:
 		if enableThrottleInstrumentation {
 			status := "throttled"
 			metrics.IncrQueueThrottleStatus(ctx, 1, metrics.CounterOpt{

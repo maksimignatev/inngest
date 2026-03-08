@@ -102,6 +102,29 @@ func TestConcurrencyLimits_Unmarshal(t *testing.T) {
 				},
 			},
 		},
+		{
+			input: []byte(`[{"limit": 50}, {"key": "event.data.tenant_id", "limit": 25, "scope": "env"}, {"key": "event.data.user_id", "limit": 10}]`),
+			expected: ConcurrencyLimits{
+				Limits: []Concurrency{
+					// ordered low to high
+					{
+						Limit: 10,
+						Key:   strptr("event.data.user_id"),
+						Hash:  hashConcurrencyKey("event.data.user_id"),
+					},
+					{
+						Limit: 25,
+						Key:   strptr("event.data.tenant_id"),
+						Scope: enums.ConcurrencyScopeEnv,
+						Hash:  hashConcurrencyKey("event.data.tenant_id"),
+					},
+					{
+						Limit: 50,
+						Scope: enums.ConcurrencyScopeFn,
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -191,4 +214,31 @@ func TestConcurrencyEvaluate(t *testing.T) {
 			require.EqualValues(t, test.expected, actual, test)
 		})
 	}
+}
+
+func TestConcurrencyLimits_Validate(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("3 limits should be valid", func(t *testing.T) {
+		c := ConcurrencyLimits{
+			Limits: []Concurrency{
+				{Limit: 50, Scope: enums.ConcurrencyScopeFn},
+				{Limit: 25, Key: strptr("event.data.tenant_id"), Scope: enums.ConcurrencyScopeEnv},
+				{Limit: 10, Key: strptr("event.data.user_id"), Scope: enums.ConcurrencyScopeFn},
+			},
+		}
+		require.NoError(t, c.Validate(ctx))
+	})
+
+	t.Run("4 limits should be invalid", func(t *testing.T) {
+		c := ConcurrencyLimits{
+			Limits: []Concurrency{
+				{Limit: 100, Scope: enums.ConcurrencyScopeFn},
+				{Limit: 50, Key: strptr("event.data.org_id"), Scope: enums.ConcurrencyScopeAccount},
+				{Limit: 25, Key: strptr("event.data.tenant_id"), Scope: enums.ConcurrencyScopeEnv},
+				{Limit: 10, Key: strptr("event.data.user_id"), Scope: enums.ConcurrencyScopeFn},
+			},
+		}
+		require.Error(t, c.Validate(ctx))
+	})
 }
